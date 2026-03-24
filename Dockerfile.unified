@@ -152,8 +152,7 @@ RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${CONTINUUM_VENV}/bin/pip in
         pyzmq \
         pytest \
         reedsolo \
-        uvloop \
-        zfec
+        uvloop
 
 RUN ${CONTINUUM_VENV}/bin/python - <<'PY'
 import email
@@ -208,8 +207,19 @@ RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${ADMPC_VENV}/bin/pip instal
         pyyaml \
         pyzmq \
         reedsolo \
-        uvloop \
-        zfec
+        uvloop
+
+# zfec 1.6.0.0 source includes -march=x86-64-v2 in setup.py, which GCC 9
+# (Ubuntu 20.04 toolchain) does not recognize. Patch to x86-64 before install.
+RUN set -eux; \
+    for v in "${CONTINUUM_VENV}" "${ADMPC_VENV}"; do \
+      t="$(mktemp -d)"; \
+      "${v}/bin/pip" download --no-binary=:all: --no-deps zfec==1.6.0.0 -d "${t}"; \
+      tar -xzf "${t}/zfec-1.6.0.0.tar.gz" -C "${t}"; \
+      sed -i 's/x86-64-v2/x86-64/g' "${t}/zfec-1.6.0.0/setup.py"; \
+      CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" "${v}/bin/pip" install "${t}/zfec-1.6.0.0"; \
+      rm -rf "${t}"; \
+    done
 
 RUN ${ADMPC_VENV}/bin/python - <<'PY'
 import email

@@ -277,26 +277,22 @@ cc-switch --app codex provider current
 
 ### 8.1 容器内 Push（把 `/opt` 改动同步到 GitHub）
 
-首次执行（只需一次）：
+每次 push 都执行下面这一段（已包含“首次自动 clone”）：
 
 ```bash
 set -euo pipefail
 SRC=/opt
-SYNC=/tmp/continuum-sync
+SYNC=/root/continuum-sync
 REPO=https://github.com/HTseaat/Continuum.git
 
-git clone "$REPO" "$SYNC"
-```
-
-以后每次 push（重复执行）：
-
-```bash
-set -euo pipefail
-SRC=/opt
-SYNC=/tmp/continuum-sync
+# 如果目录不存在或不是 git 仓库，则自动初始化
+if [ ! -d "$SYNC/.git" ]; then
+  git clone "$REPO" "$SYNC"
+fi
 
 cd "$SYNC"
-git checkout main
+git fetch origin
+git checkout main || git checkout -b main origin/main
 git pull --ff-only origin main
 
 # 清空同步目录中的工作区（保留 .git）
@@ -324,6 +320,7 @@ git push origin main
 
 说明：
 
+- `SYNC` 建议放在 `/root`（不要放 `/tmp`，容器重启后可能被清空）。
 - 如果仓库是私有仓库，`git push` 会让你输入 GitHub 用户名和 PAT（不是登录密码）。
 - 如果网络不稳定导致 `RPC failed`，可先执行：
 
