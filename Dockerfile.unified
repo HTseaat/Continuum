@@ -134,12 +134,12 @@ RUN python3 -m venv ${CONTINUUM_VENV} \
     && python3 -m venv ${ADMPC_VENV}
 
 # Continuum environment build
-RUN ${CONTINUUM_VENV}/bin/pip install --upgrade \
+RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${CONTINUUM_VENV}/bin/pip install --upgrade \
         pip==24.0 \
         setuptools==68.2.2 \
         wheel==0.41.3 \
         setuptools_rust==1.8.1 \
-    && ${CONTINUUM_VENV}/bin/pip install \
+    && CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${CONTINUUM_VENV}/bin/pip install \
         cffi \
         Cython==0.29.36 \
         gmpy2 \
@@ -192,12 +192,12 @@ RUN rm -rf ${CONTINUUM_HOME}/dumbo-mpc/OptRanTriGen/pairing/.eggs \
 
 # AD-MPC environment build
 # Use --no-deps to avoid forcing legacy pycrypto on Python 3.8.
-RUN ${ADMPC_VENV}/bin/pip install --upgrade \
+RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${ADMPC_VENV}/bin/pip install --upgrade \
         pip==24.0 \
         setuptools==68.2.2 \
         wheel==0.41.3 \
         setuptools_rust==1.8.1 \
-    && ${ADMPC_VENV}/bin/pip install \
+    && CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${ADMPC_VENV}/bin/pip install \
         cffi \
         Cython==0.29.36 \
         doc8 \

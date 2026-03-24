@@ -270,3 +270,85 @@ cc-switch --app codex provider current
 如果你不加 `--app codex`，`provider add` 会落到默认的 Claude 配置里。
 
 另外，首次建议先运行一次 `codex`（或 `codex --help`）初始化 `~/.codex/`，这样 `cc-switch` 同步实时配置时更稳定。
+
+## 8. 容器内 Push 与服务器 Pull（傻瓜流程）
+
+下面这套流程适用于当前目录结构（你在 `/opt` 开发，仓库在 GitHub）。
+
+### 8.1 容器内 Push（把 `/opt` 改动同步到 GitHub）
+
+首次执行（只需一次）：
+
+```bash
+set -euo pipefail
+SRC=/opt
+SYNC=/tmp/continuum-sync
+REPO=https://github.com/HTseaat/Continuum.git
+
+git clone "$REPO" "$SYNC"
+```
+
+以后每次 push（重复执行）：
+
+```bash
+set -euo pipefail
+SRC=/opt
+SYNC=/tmp/continuum-sync
+
+cd "$SYNC"
+git checkout main
+git pull --ff-only origin main
+
+# 清空同步目录中的工作区（保留 .git）
+find "$SYNC" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+# 从 /opt 拷贝代码（排除缓存/构建/日志/嵌套 git 元数据）
+tar -C "$SRC" \
+  --exclude='.git' \
+  --exclude='*/.git' \
+  --exclude='venv' \
+  --exclude='__pycache__' \
+  --exclude='*.pyc' \
+  --exclude='build' \
+  --exclude='*.egg-info' \
+  --exclude='logs' \
+  --exclude='*.log' \
+  --exclude='.DS_Store' \
+  -cf - . | tar -C "$SYNC" -xf -
+
+cd "$SYNC"
+git add -A
+git commit -m "update from container: $(date +%F_%T)" || echo "No changes to commit."
+git push origin main
+```
+
+说明：
+
+- 如果仓库是私有仓库，`git push` 会让你输入 GitHub 用户名和 PAT（不是登录密码）。
+- 如果网络不稳定导致 `RPC failed`，可先执行：
+
+```bash
+git config --global http.version HTTP/1.1
+git config --global http.postBuffer 524288000
+```
+
+### 8.2 服务器 Pull（拉取你刚 push 的最新代码）
+
+首次执行：
+
+```bash
+set -e
+mkdir -p ~/work
+cd ~/work
+git clone https://github.com/HTseaat/Continuum.git
+cd Continuum
+git checkout main
+```
+
+以后每次更新：
+
+```bash
+cd ~/work/Continuum
+git pull --ff-only origin main
+git log -1 --oneline
+```
