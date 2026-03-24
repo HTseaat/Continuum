@@ -130,6 +130,23 @@ COPY continuum ${CONTINUUM_HOME}
 COPY AD-MPC ${ADMPC_HOME}
 COPY unified /opt/unified
 
+# Build KZG shared library during image build so runtime ctypes loads succeed.
+RUN set -eux; \
+    mkdir -p /tmp/go-build-cache /tmp/go/pkg/mod; \
+    cd ${CONTINUUM_HOME}/gnark-crypto/kzg_ped_bls12-381; \
+    GOCACHE=/tmp/go-build-cache GOPATH=/tmp/go GOMODCACHE=/tmp/go/pkg/mod bash ./build_shared_library.sh; \
+    cp -f kzg_ped_out.so ${CONTINUUM_HOME}/kzg_ped_out.so; \
+    test -f ${CONTINUUM_HOME}/dumbo-mpc/AsyRanTriGen/kzg_ped_out.so
+
+# Build bulletproof shared library during image build and copy to runtime path.
+RUN set -eux; \
+    mkdir -p /tmp/cargo-home; \
+    cd ${CONTINUUM_HOME}/bulletproofs-amcl; \
+    CARGO_HOME=/tmp/cargo-home cargo build --release; \
+    cp -f target/release/libbulletproofs_amcl.so ${CONTINUUM_HOME}/dumbo-mpc/AsyRanTriGen/libbulletproofs_amcl.so; \
+    cp -f target/release/libbulletproofs_amcl.so ${CONTINUUM_HOME}/libbulletproofs_amcl.so; \
+    test -f ${CONTINUUM_HOME}/dumbo-mpc/AsyRanTriGen/libbulletproofs_amcl.so
+
 RUN python3 -m venv ${CONTINUUM_VENV} \
     && python3 -m venv ${ADMPC_VENV}
 
