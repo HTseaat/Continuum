@@ -154,6 +154,16 @@ RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${CONTINUUM_VENV}/bin/pip in
         reedsolo \
         uvloop
 
+# zfec 1.6.0.0 source includes -march=x86-64-v2 in setup.py, which GCC 9
+# (Ubuntu 20.04 toolchain) does not recognize. Patch to x86-64 before install.
+RUN set -eux; \
+    t="$(mktemp -d)"; \
+    "${CONTINUUM_VENV}/bin/pip" download --no-binary=:all: --no-deps zfec==1.6.0.0 -d "${t}"; \
+    tar -xzf "${t}/zfec-1.6.0.0.tar.gz" -C "${t}"; \
+    sed -i 's/x86-64-v2/x86-64/g' "${t}/zfec-1.6.0.0/setup.py"; \
+    CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" "${CONTINUUM_VENV}/bin/pip" install "${t}/zfec-1.6.0.0"; \
+    rm -rf "${t}"
+
 RUN ${CONTINUUM_VENV}/bin/python - <<'PY'
 import email
 import shutil
@@ -184,7 +194,7 @@ RUN rm -rf ${CONTINUUM_HOME}/dumbo-mpc/OptRanTriGen/pairing/.eggs \
     && cd ${CONTINUUM_HOME}/dumbo-mpc/OptRanTriGen/pairing \
     && ${CONTINUUM_VENV}/bin/pip install . \
     && cd ${CONTINUUM_HOME}/dumbo-mpc/OptRanTriGen \
-    && ${CONTINUUM_VENV}/bin/pip install . \
+    && ${CONTINUUM_VENV}/bin/pip install --no-deps . \
     && ${CONTINUUM_VENV}/bin/python setup.py build_ext --inplace \
     && cd ${CONTINUUM_HOME}/hbMPC \
     && ${CONTINUUM_VENV}/bin/python setup.py build_ext --inplace
@@ -212,7 +222,7 @@ RUN CFLAGS="-march=x86-64" CXXFLAGS="-march=x86-64" ${ADMPC_VENV}/bin/pip instal
 # zfec 1.6.0.0 source includes -march=x86-64-v2 in setup.py, which GCC 9
 # (Ubuntu 20.04 toolchain) does not recognize. Patch to x86-64 before install.
 RUN set -eux; \
-    for v in "${CONTINUUM_VENV}" "${ADMPC_VENV}"; do \
+    for v in "${ADMPC_VENV}"; do \
       t="$(mktemp -d)"; \
       "${v}/bin/pip" download --no-binary=:all: --no-deps zfec==1.6.0.0 -d "${t}"; \
       tar -xzf "${t}/zfec-1.6.0.0.tar.gz" -C "${t}"; \
