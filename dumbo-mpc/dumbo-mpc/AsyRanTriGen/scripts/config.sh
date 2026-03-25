@@ -1,12 +1,14 @@
 # worker nodes config
 NODE_NUM=4
 NODE_IPS=(
-    "124.223.223.105"
-    "124.222.18.234"
-    "106.54.165.2"
-	"1.15.93.163"
+    "101.35.81.206"
+    "124.221.25.126"
+    "42.192.8.61"
+    "111.229.49.33"
 )
 NODE_SSH_USERNAME="root"
+MPC_IMAGE="continuum:latest"
+REMOTE_WORKSPACE_DIR="Continuum"
 
 # ethermint config
 # CHAINID="ethermint_9000-1"

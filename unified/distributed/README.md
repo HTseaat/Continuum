@@ -48,14 +48,22 @@ Useful options:
 --timeout <seconds>              # admpc/continuum control-node timeout
 --dumbo-timeout <seconds>        # dumbo launch timeout
 --only-n <n>                     # case filter for exp1/exp2 (e.g., n=4 smoke test)
+--skip-remote-cleanup            # skip pre-case cleanup of remote leftover containers
 ```
 
 For each case, runner behavior is:
 - sync `config.sh` / `ip.txt` for current `N`
 - run `setup_ssh_keys.sh <N>` automatically (once per `N` in one session)
+- cleanup stale compose containers on selected nodes (to avoid port conflicts)
 - generate that case's config, distribute files, run protocol
 - archive logs into a case-specific output directory (no overwrite across cases)
 - pause 30s before next case (configurable)
+
+Manual cleanup helper (when needed):
+
+```bash
+./cleanup_remote_ports.sh --protocol continuum --n 4
+```
 
 ## 3. Experiment presets
 
@@ -86,3 +94,27 @@ cd /opt/unified/distributed
 This runs:
 - `run_suite.sh admpc exp1 --only-n 4`
 - `run_suite.sh continuum exp1 --only-n 4`
+
+## 6. Dumbo 4-node smoke (w=100, d=6)
+
+`exp3` for dumbo is fixed at `n=16` in presets.  
+Use this helper for a small 4-node sanity run:
+
+```bash
+cd /opt/unified/distributed
+./run_dumbo_smoke_n4_d6.sh
+```
+
+Defaults:
+- `n=4`, `t=1`
+- `width=100`, `depth=6`
+- `k=300` (computed as `width*depth/2`)
+- `mode=full`
+
+Useful options:
+
+```bash
+./run_dumbo_smoke_n4_d6.sh --sync-code
+./run_dumbo_smoke_n4_d6.sh --dumbo-timeout 900
+./run_dumbo_smoke_n4_d6.sh --mode drop-epoch4
+```

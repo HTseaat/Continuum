@@ -4,9 +4,6 @@ services:
   htadkg_adkg:
     entrypoint: ""
     working_dir: /usr/src/adkg
-  # 这里加了一个端口映射
-    ports:
-      - "7001:7001"
     # build:
     #   context: .
     #   dockerfile: Dockerfile
@@ -36,5 +33,4 @@ services:
       - ./pairing/setup.py:/usr/src/adkg/pairing/setup.py
       - ./:/usr/src/adkg/
       - ./:/opt/admpc
-      - /usr/src/adkg/adkg/ntl  # Directory _not_ mounted from host
     command: pytest -v --cov=adkg

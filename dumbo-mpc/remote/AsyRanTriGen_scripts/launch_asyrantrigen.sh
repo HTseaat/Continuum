@@ -80,12 +80,27 @@ for (( idx=0; idx< NODES_NUM; idx++ )); do
         peer_port=$((7001))
         echo "[DEBUG] Node ID $id will use peer_port=$peer_port"
         ssh -n -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 "$ssh_user_host" \
-    "cd ${REMOTE_ROOT}/dumbo-mpc && \
-        MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -p ${peer_port}:${peer_port} \
-        -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
-        dumbo-mpc \
-        bash -lc 'python3 scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS --dumbo_mode $DUMBO_MODE && \
-                    python3 -u -m scripts.run_beaver_triple -d -f conf/mpc_$NODES_NUM/local.${id}.json -time 0'"
+    "set -e; cd ${REMOTE_ROOT}/dumbo-mpc && \
+        if command -v docker-compose >/dev/null 2>&1; then \
+          MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run --rm -p ${peer_port}:${peer_port} \
+            -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
+            dumbo-mpc \
+            bash -lc 'PY_EXEC=/opt/venv/continuum/bin/python3; \
+                      if [ ! -x "\$PY_EXEC" ]; then echo "Missing continuum python: \$PY_EXEC" >&2; exit 127; fi; \
+                      "\$PY_EXEC" scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS --dumbo_mode $DUMBO_MODE && \
+                      "\$PY_EXEC" -u -m scripts.run_beaver_triple -d -f conf/mpc_$NODES_NUM/local.${id}.json -time 0'; \
+        elif docker compose version >/dev/null 2>&1; then \
+          MPC_IMAGE='${MPC_IMAGE:-}' docker compose run --rm -p ${peer_port}:${peer_port} \
+            -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
+            dumbo-mpc \
+            bash -lc 'PY_EXEC=/opt/venv/continuum/bin/python3; \
+                      if [ ! -x "\$PY_EXEC" ]; then echo "Missing continuum python: \$PY_EXEC" >&2; exit 127; fi; \
+                      "\$PY_EXEC" scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS --dumbo_mode $DUMBO_MODE && \
+                      "\$PY_EXEC" -u -m scripts.run_beaver_triple -d -f conf/mpc_$NODES_NUM/local.${id}.json -time 0'; \
+        else \
+          echo 'Neither docker-compose nor docker compose is available on this node.' >&2; \
+          exit 127; \
+        fi"
     ) > "logs/node${idx}.log" 2>&1 &
     (( id++ ))
 done

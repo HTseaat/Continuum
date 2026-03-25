@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-
-echo "Usage: $0 <config_dir> [protocol] [timeout]"
+set -euo pipefail
 
 # Read config directory
 if [ $# -lt 1 ]; then
@@ -88,8 +86,17 @@ if [ "$protocol" = "hbmpc" ] || [ "$protocol" = "hbmpc_attack" ]; then
         ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
         file_num=$((i - 1))
         ssh -T "$ssh_user_host" \
-            "cd ${REMOTE_ROOT}/admpc && MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
-            python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT" \
+            "set -e; cd ${REMOTE_ROOT}/admpc; \
+            if command -v docker-compose >/dev/null 2>&1; then \
+                MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run --rm -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
+                /opt/venv/admpc/bin/python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT; \
+            elif docker compose version >/dev/null 2>&1; then \
+                MPC_IMAGE='${MPC_IMAGE:-}' docker compose run --rm -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
+                /opt/venv/admpc/bin/python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT; \
+            else \
+                echo 'Neither docker-compose nor docker compose is available on this node.' >&2; \
+                exit 127; \
+            fi" \
             > "logs/node${i}.log" 2>&1 &
     done
 else
@@ -100,12 +107,31 @@ else
             ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
             file_num=$(((j - 1) * NODE_NUM + i - 1))
             ssh -T "$ssh_user_host" \
-                "cd ${REMOTE_ROOT}/admpc && MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
-                python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT" \
+                "set -e; cd ${REMOTE_ROOT}/admpc; \
+                if command -v docker-compose >/dev/null 2>&1; then \
+                    MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run --rm -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
+                    /opt/venv/admpc/bin/python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT; \
+                elif docker compose version >/dev/null 2>&1; then \
+                    MPC_IMAGE='${MPC_IMAGE:-}' docker compose run --rm -w /usr/src/adkg -p $external_port:$external_port htadkg_adkg \
+                    /opt/venv/admpc/bin/python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT; \
+                else \
+                    echo 'Neither docker-compose nor docker compose is available on this node.' >&2; \
+                    exit 127; \
+                fi" \
                 > "logs/node${i}_cont${j}.log" 2>&1 &
         done
     done
 fi
 
 # waiting SSH commands to finish
-wait
+job_failed=0
+for job in $(jobs -p); do
+    if ! wait "$job"; then
+        job_failed=1
+    fi
+done
+
+if [ "$job_failed" -ne 0 ]; then
+    echo "One or more remote runs failed. Check logs/ for details." >&2
+    exit 1
+fi

@@ -30,7 +30,9 @@ load_cluster_env() {
   source "$env_file"
 
   NODE_SSH_USERNAME="${NODE_SSH_USERNAME:-root}"
-  MPC_IMAGE="${MPC_IMAGE:-}"
+  # Keep a stable default image tag even if remote repositories are on mixed versions.
+  # This avoids accidentally falling back to outdated compose defaults on remote hosts.
+  MPC_IMAGE="${MPC_IMAGE:-continuum:latest}"
   REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
 
   if [[ ${#CLUSTER_IPS[@]} -eq 0 ]]; then

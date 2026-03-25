@@ -21,6 +21,7 @@ Options:
   --timeout <seconds>     control-node timeout for admpc/continuum (default: 12)
   --dumbo-timeout <sec>   launch timeout for dumbo runs (default: 600)
   --only-n <n>            Only run cases with this N (exp1/exp2 use-case filter)
+  --skip-remote-cleanup   Skip automatic remote container cleanup before each case
   --sleep-between-case <seconds>
                            Pause between cases to collect data (default: 30)
   --sync-code             Also run code distribution step before each case
@@ -47,6 +48,8 @@ SLEEP_BETWEEN_CASE=30
 SYNC_CODE=0
 RESULTS_ROOT="$RESULTS_ROOT_DEFAULT"
 ONLY_N=""
+REMOTE_CLEANUP=1
+CONTINUUM_PYTHON="${CONTINUUM_PYTHON:-/opt/venv/continuum/bin/python3}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -70,6 +73,10 @@ while [[ $# -gt 0 ]]; do
     --only-n)
       ONLY_N="$2"
       shift 2
+      ;;
+    --skip-remote-cleanup)
+      REMOTE_CLEANUP=0
+      shift
       ;;
     --sleep-between-case)
       SLEEP_BETWEEN_CASE="$2"
@@ -131,6 +138,19 @@ fi
 
 load_cluster_env
 require_tools bash python3 ssh ssh-keygen scp tar timeout
+
+if [[ "$PROTOCOL" == "continuum" || "$PROTOCOL" == "dumbo" ]]; then
+  if [[ ! -x "$CONTINUUM_PYTHON" ]]; then
+    echo "Continuum python not found or not executable: ${CONTINUUM_PYTHON}" >&2
+    echo "Set CONTINUUM_PYTHON env or ensure /opt/venv/continuum exists." >&2
+    exit 1
+  fi
+  if ! "$CONTINUUM_PYTHON" -c "import charm" >/dev/null 2>&1; then
+    echo "Continuum python cannot import 'charm': ${CONTINUUM_PYTHON}" >&2
+    echo "Please check continuum virtualenv dependencies." >&2
+    exit 1
+  fi
+fi
 
 RUN_TAG="$(timestamp_utc)"
 SESSION_DIR="${RESULTS_ROOT}/${RUN_TAG}_${PROTOCOL}_${EXP_ID}"
@@ -238,6 +258,26 @@ ensure_ssh_setup_for_n() {
   SSH_SETUP_DONE_NS+=("$n")
 }
 
+cleanup_remote_before_case() {
+  local n="$1"
+  if [[ "$REMOTE_CLEANUP" -eq 0 ]]; then
+    return
+  fi
+
+  local cleanup_script="${SCRIPT_DIR}/cleanup_remote_ports.sh"
+  if [[ ! -x "$cleanup_script" ]]; then
+    echo "Cleanup script is missing or not executable: ${cleanup_script}" >&2
+    exit 1
+  fi
+
+  echo "Cleaning remote leftover containers for protocol=${PROTOCOL}, N=${n}"
+  if [[ -n "${CLUSTER_ENV:-}" ]]; then
+    CLUSTER_ENV="$CLUSTER_ENV" "$cleanup_script" --protocol "$PROTOCOL" --n "$n"
+  else
+    "$cleanup_script" --protocol "$PROTOCOL" --n "$n"
+  fi
+}
+
 pause_between_cases_if_needed() {
   local idx="$1"
   local total="$2"
@@ -267,6 +307,7 @@ run_admpc_case() {
   echo "[AD-MPC] ${case_name}: mode=${gate_mode}, n=${n}, t=${t}, d=${d}, layers=${layers_total}, total_cm=${total_cm}"
   sync_cluster_for_n "$n"
   ensure_ssh_setup_for_n "$n"
+  cleanup_remote_before_case "$n"
 
   (
     cd "${ADMPC_DIR}/scripts"
@@ -302,10 +343,12 @@ run_continuum_case() {
   echo "[continuum] ${case_name}: mode=${gate_mode}, n=${n}, t=${t}, d=${d}, layers=${layers_total}, total_cm=${total_cm}"
   sync_cluster_for_n "$n"
   ensure_ssh_setup_for_n "$n"
+  cleanup_remote_before_case "$n"
 
   (
     cd "${ASY_DIR}"
-    python3 scripts/create_json_files.py admpc "$n" "$t" "$layers_total" "$total_cm"
+    PYTHONPATH="${ASY_DIR}:${PYTHONPATH:-}" \
+      "$CONTINUUM_PYTHON" scripts/create_json_files.py admpc "$n" "$t" "$layers_total" "$total_cm"
 
     cd "${ASY_SCRIPTS_DIR}"
     ./distribute-admpc.sh
@@ -338,10 +381,12 @@ run_dumbo_case() {
   echo "[dumbo] ${case_name}: mode=${dumbo_mode}, n=${n}, t=${t}, d=${d}, k=${k}"
   sync_cluster_for_n "$n"
   ensure_ssh_setup_for_n "$n"
+  cleanup_remote_before_case "$n"
 
   (
     cd "${ASY_DIR}"
-    python3 scripts/run_key_gen_dumbo_dyn.py --N "$n" --f "$t" --k "$k" --layers "$d" --ip-file scripts/ip.txt --port 7001
+    PYTHONPATH="${ASY_DIR}:${PYTHONPATH:-}" \
+      "$CONTINUUM_PYTHON" scripts/run_key_gen_dumbo_dyn.py --N "$n" --f "$t" --k "$k" --layers "$d" --ip-file scripts/ip.txt --port 7001
 
     cd "${ASY_SCRIPTS_DIR}"
     ./distribute-admpc.sh
