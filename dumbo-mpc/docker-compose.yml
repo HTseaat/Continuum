@@ -3,6 +3,7 @@ version: '3.4'
 services:
   dumbo-mpc:
     entrypoint: ""
+    working_dir: /opt/dumbo-mpc
   # 这里加了一个端口映射
     ports:
       - "7001:7001"

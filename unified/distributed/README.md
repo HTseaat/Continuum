@@ -47,6 +47,7 @@ Useful options:
 --sync-code                      # distribute code before each case
 --timeout <seconds>              # admpc/continuum control-node timeout
 --dumbo-timeout <seconds>        # dumbo launch timeout
+--only-n <n>                     # case filter for exp1/exp2 (e.g., n=4 smoke test)
 ```
 
 For each case, runner behavior is:
@@ -72,3 +73,16 @@ Each run writes to:
 ```
 
 Current version stores raw logs and metadata only. Metric extraction is intentionally left as TODO for later.
+
+## 5. Quick smoke test (exp1, n=4 only)
+
+Run the minimal distributed sanity check before large-scale runs:
+
+```bash
+cd /opt/unified/distributed
+./run_exp1_smoke_n4.sh
+```
+
+This runs:
+- `run_suite.sh admpc exp1 --only-n 4`
+- `run_suite.sh continuum exp1 --only-n 4`

@@ -20,6 +20,7 @@ Options:
   --results-root <path>   Results root (default: /opt/benchmark-distributed)
   --timeout <seconds>     control-node timeout for admpc/continuum (default: 12)
   --dumbo-timeout <sec>   launch timeout for dumbo runs (default: 600)
+  --only-n <n>            Only run cases with this N (exp1/exp2 use-case filter)
   --sleep-between-case <seconds>
                            Pause between cases to collect data (default: 30)
   --sync-code             Also run code distribution step before each case
@@ -45,6 +46,7 @@ DUMBO_TIMEOUT=600
 SLEEP_BETWEEN_CASE=30
 SYNC_CODE=0
 RESULTS_ROOT="$RESULTS_ROOT_DEFAULT"
+ONLY_N=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -63,6 +65,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dumbo-timeout)
       DUMBO_TIMEOUT="$2"
+      shift 2
+      ;;
+    --only-n)
+      ONLY_N="$2"
       shift 2
       ;;
     --sleep-between-case)
@@ -108,6 +114,16 @@ if ! [[ "$SLEEP_BETWEEN_CASE" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+if [[ -n "$ONLY_N" ]] && ! [[ "$ONLY_N" =~ ^[0-9]+$ ]]; then
+  echo "Invalid --only-n: ${ONLY_N}" >&2
+  exit 1
+fi
+
+if [[ -n "$ONLY_N" ]] && [[ "$EXP_ID" == "exp3" || "$EXP_ID" == "exp4" ]] && [[ "$ONLY_N" != "16" ]]; then
+  echo "--only-n=${ONLY_N} does not match ${EXP_ID} preset (fixed n=16)." >&2
+  exit 1
+fi
+
 if [[ "$PROTOCOL" == "dumbo" ]] && [[ "$EXP_ID" == "exp1" || "$EXP_ID" == "exp2" ]]; then
   echo "Dumbo is not part of ${EXP_ID}. Supported: exp3, exp4" >&2
   exit 1
@@ -121,6 +137,9 @@ SESSION_DIR="${RESULTS_ROOT}/${RUN_TAG}_${PROTOCOL}_${EXP_ID}"
 mkdir -p "$SESSION_DIR"
 
 echo "Run session: $SESSION_DIR"
+if [[ -n "$ONLY_N" ]]; then
+  echo "Case filter enabled: n=${ONLY_N}"
+fi
 
 SSH_SETUP_DONE_NS=()
 
@@ -364,7 +383,21 @@ case "$EXP_ID" in
     D=6
     NS=(4 8 12 16)
     TS=(1 2 3 5)
+    selected_indices=()
     for idx in "${!NS[@]}"; do
+      n="${NS[$idx]}"
+      if [[ -n "$ONLY_N" ]] && [[ "$n" != "$ONLY_N" ]]; then
+        continue
+      fi
+      selected_indices+=("$idx")
+    done
+    if [[ "${#selected_indices[@]}" -eq 0 ]]; then
+      echo "No exp1 cases selected with --only-n=${ONLY_N}" >&2
+      exit 1
+    fi
+
+    for run_idx in "${!selected_indices[@]}"; do
+      idx="${selected_indices[$run_idx]}"
       n="${NS[$idx]}"
       t="${TS[$idx]}"
       total_cm="$(total_cm_for_gate "$GATE_MODE" "$WIDTH" "$D")"
@@ -374,7 +407,7 @@ case "$EXP_ID" in
       else
         run_continuum_case "$case_name" "$GATE_MODE" "$n" "$t" "$D" "$total_cm"
       fi
-      pause_between_cases_if_needed "$idx" "${#NS[@]}"
+      pause_between_cases_if_needed "$run_idx" "${#selected_indices[@]}"
     done
     ;;
 
@@ -383,7 +416,21 @@ case "$EXP_ID" in
     D=6
     NS=(4 8 12 16)
     TS=(1 2 3 5)
+    selected_indices=()
     for idx in "${!NS[@]}"; do
+      n="${NS[$idx]}"
+      if [[ -n "$ONLY_N" ]] && [[ "$n" != "$ONLY_N" ]]; then
+        continue
+      fi
+      selected_indices+=("$idx")
+    done
+    if [[ "${#selected_indices[@]}" -eq 0 ]]; then
+      echo "No exp2 cases selected with --only-n=${ONLY_N}" >&2
+      exit 1
+    fi
+
+    for run_idx in "${!selected_indices[@]}"; do
+      idx="${selected_indices[$run_idx]}"
       n="${NS[$idx]}"
       t="${TS[$idx]}"
       total_cm="$(total_cm_for_gate "$GATE_MODE" "$WIDTH" "$D")"
@@ -393,7 +440,7 @@ case "$EXP_ID" in
       else
         run_continuum_case "$case_name" "$GATE_MODE" "$n" "$t" "$D" "$total_cm"
       fi
-      pause_between_cases_if_needed "$idx" "${#NS[@]}"
+      pause_between_cases_if_needed "$run_idx" "${#selected_indices[@]}"
     done
     ;;
 
