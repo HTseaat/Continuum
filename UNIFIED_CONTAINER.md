@@ -402,7 +402,7 @@ git checkout main
 以后每次更新：
 
 ```bash
-cd ~/work/Continuum
+cd ~/Continuum
 git pull --ff-only origin main
 git log -1 --oneline
 ```
