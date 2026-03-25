@@ -16,6 +16,8 @@ cp cluster.env.example cluster.env
 `cluster.env` defines:
 - `NODE_SSH_USERNAME`
 - ordered `CLUSTER_IPS=(...)`
+- Optional `MPC_IMAGE` env can override compose image (default `continuum:latest`).
+- Optional `REMOTE_WORKSPACE_DIR` if remote repos are under `~/Continuum`-style parent dir.
 
 ## 2. Run one protocol at a time
 

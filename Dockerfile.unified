@@ -126,8 +126,8 @@ RUN wget -q https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz \
 RUN sed -i '30c #include "flint/flint.h"' /usr/include/flint/flintxx/flint_classes.h
 
 WORKDIR /opt
-COPY continuum ${CONTINUUM_HOME}
-COPY AD-MPC ${ADMPC_HOME}
+COPY dumbo-mpc ${CONTINUUM_HOME}
+COPY admpc ${ADMPC_HOME}
 COPY unified /opt/unified
 
 # Build KZG shared library during image build so runtime ctypes loads succeed.

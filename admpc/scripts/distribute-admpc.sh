@@ -6,6 +6,13 @@ ensure_script_dir
 
 source -- ./config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [ -n "$REMOTE_WORKSPACE_DIR" ]; then
+    REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+    REMOTE_ROOT="~"
+fi
+
 # trick: these nodes must:
 # 1. have permission to run docker (i.e., user has been added to the docker group)
 # 2. have the same username
@@ -23,9 +30,9 @@ cd adkg
 # copy these files to each node
 for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
-    ssh "$ssh_user_host" -- "cd adkg/adkg && rm -rf hbmpc_attack.py"
+    ssh "$ssh_user_host" -- "cd ${REMOTE_ROOT}/admpc/adkg && rm -rf hbmpc_attack.py"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && rm -rf admpc_4.tar.xz && rm -rf admpc_4"
-    scp "hbmpc_attack.py" "$ssh_user_host:~/adkg/adkg"
+    scp "hbmpc_attack.py" "$ssh_user_host:${REMOTE_ROOT}/admpc/adkg"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && tar Jxf admpc_16.tar.xz"
     # scp "./dist/sdumoe-chain-ethermint.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-ethermint.docker.image.tar.xz"
     # scp "./dist/sdumoe-chain-backend.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-backend.docker.image.tar.xz"

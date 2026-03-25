@@ -6,6 +6,13 @@ ensure_script_dir
 
 source -- ./config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [ -n "$REMOTE_WORKSPACE_DIR" ]; then
+    REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+    REMOTE_ROOT="~"
+fi
+
 # trick: these nodes must:
 # 1. have permission to run docker (i.e., user has been added to the docker group)
 # 2. have the same username
@@ -23,7 +30,7 @@ source -- ./config.sh
 # copy these files to each node
 for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
-    ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/scripts && rm -rf ip.txt"
+    ssh "$ssh_user_host" -- "cd ${REMOTE_ROOT}/dumbo-mpc/dumbo-mpc/AsyRanTriGen/scripts && rm -rf ip.txt"
     # ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver && rm -rf admpc2_dynamic.py"
     # ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver && rm -rf hbacss.py"
     # ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver && rm -rf dumbo_mpc_dyn.py"
@@ -31,7 +38,7 @@ for i in $(seq 1 $NODE_NUM); do
     # ssh "$ssh_user_host" -- "cd dumbo-mpc/remote/AsyRanTriGen_scripts && rm -rf launch_asyrantrigen.sh"
     # ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver && rm -rf dumbo_mpc_dyn.py"
 
-    scp "ip.txt" "$ssh_user_host:~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/scripts"
+    scp "ip.txt" "$ssh_user_host:${REMOTE_ROOT}/dumbo-mpc/dumbo-mpc/AsyRanTriGen/scripts"
     # scp "$(dirname "$0")/../beaver/hbacss.py" "$ssh_user_host:~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver/"
     # scp "$(dirname "$0")/../beaver/admpc2_dynamic.py" "$ssh_user_host:~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver/"
     # scp "$(dirname "$0")/../beaver/dumbo_mpc_dyn.py" "$ssh_user_host:~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/beaver/"

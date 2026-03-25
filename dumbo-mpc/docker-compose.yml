@@ -9,7 +9,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    image: htseaat/dumbo-mpc:admpc2.3
+    image: ${MPC_IMAGE:-continuum:latest}
     cap_add:
       - NET_ADMIN
     volumes:

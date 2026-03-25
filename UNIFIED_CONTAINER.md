@@ -32,8 +32,8 @@
 
 这条命令会自动把本地目录挂载到容器里（改动实时同步到本地）：
 
-- `./continuum` -> `/opt/dumbo-mpc`
-- `./AD-MPC` -> `/opt/admpc`
+- `./dumbo-mpc` -> `/opt/dumbo-mpc`
+- `./admpc` -> `/opt/admpc`
 - `./unified` -> `/opt/unified`
 - `./papers` -> `/opt/papers`（如果本地存在该目录）
 
@@ -208,6 +208,7 @@ cp cluster.env.example cluster.env
 
 说明：
 - 实验参数已内置：`(n,t)={(4,1),(8,2),(12,3),(16,5)}`，以及 `exp4` 的 dumbo `drop-epoch4`。
+- 如果远端仓库放在 `~/Continuum/admpc`、`~/Continuum/dumbo-mpc` 这类父目录下，可在 `cluster.env` 里设置 `REMOTE_WORKSPACE_DIR="Continuum"`。
 - 每个 case 会先同步对应 `N` 的 `config.sh/ip.txt`，并自动执行 `setup_ssh_keys.sh <N>`（同一轮里同一个 `N` 只做一次）。
 - 每个 case 都是“单独生成配置 + 单独分发 + 单独归档”，不会覆盖前一个 case 的结果。
 - 默认每个变量 case 跑完会等待 30 秒，方便你停下来记录数据（可用 `--sleep-between-case` 调整）。

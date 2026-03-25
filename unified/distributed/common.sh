@@ -14,6 +14,8 @@ RESULTS_ROOT_DEFAULT="/opt/benchmark-distributed"
 CLUSTER_ENV_DEFAULT="${SCRIPT_DIR}/cluster.env"
 
 NODE_SSH_USERNAME=""
+MPC_IMAGE=""
+REMOTE_WORKSPACE_DIR=""
 CLUSTER_IPS=()
 
 load_cluster_env() {
@@ -28,6 +30,8 @@ load_cluster_env() {
   source "$env_file"
 
   NODE_SSH_USERNAME="${NODE_SSH_USERNAME:-root}"
+  MPC_IMAGE="${MPC_IMAGE:-}"
+  REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
 
   if [[ ${#CLUSTER_IPS[@]} -eq 0 ]]; then
     echo "CLUSTER_IPS is empty in $env_file" >&2
@@ -80,6 +84,8 @@ write_config_sh() {
     done
     echo ")"
     echo "NODE_SSH_USERNAME=\"${NODE_SSH_USERNAME}\""
+    echo "MPC_IMAGE=\"${MPC_IMAGE}\""
+    echo "REMOTE_WORKSPACE_DIR=\"${REMOTE_WORKSPACE_DIR}\""
     echo
     echo "# ethermint config"
     echo "# CHAINID=\"ethermint_9000-1\""

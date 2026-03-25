@@ -70,6 +70,13 @@ ensure_script_dir
 
 source -- ./config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [ -n "$REMOTE_WORKSPACE_DIR" ]; then
+    REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+    REMOTE_ROOT="~"
+fi
+
 
 base_port=7000  # setting basic port, e.g. 7000
 delay_between_ssh_commands=0.1
@@ -81,7 +88,7 @@ if [ "$protocol" = "hbmpc" ] || [ "$protocol" = "hbmpc_attack" ]; then
         ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
         file_num=$((i - 1))
         ssh -T "$ssh_user_host" \
-            "cd ~/adkg && docker-compose run -p $external_port:$external_port htadkg_adkg \
+            "cd ${REMOTE_ROOT}/admpc && MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -p $external_port:$external_port htadkg_adkg \
             python3 -u -m $run_mod -d -f $json_dir/local.${file_num}.json -time $TIMEOUT" \
             > "logs/node${i}.log" 2>&1 &
     done
@@ -102,7 +109,7 @@ else
             #         -d -f dumbo-mpc/AsyRanTriGen/conf/$conf_dir/local.${file_num}.json -time $TIMEOUT" \
             #     > "logs/node${i}_cont${j}.log" 2>&1 &
             ssh -T "$ssh_user_host" \
-                "cd ~/dumbo-mpc && docker-compose run -p $external_port:$external_port \
+                "cd ${REMOTE_ROOT}/dumbo-mpc && MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -p $external_port:$external_port \
                 -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
                 dumbo-mpc \
                 python -u -m $run_mod -d -f $json_dir/local.${file_num}.json --time $TIMEOUT" \

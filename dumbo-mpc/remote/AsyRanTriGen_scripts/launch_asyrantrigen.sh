@@ -32,6 +32,13 @@ cd "$SCRIPT_DIR"
 # 引入 config.sh（提供 NODE_SSH_USERNAME / NODE_IPS）
 source -- ../config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [[ -n "$REMOTE_WORKSPACE_DIR" ]]; then
+  REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+  REMOTE_ROOT="~"
+fi
+
 # 优先从 ../ip.txt 读取 IP；如果没有或为空，则使用 NODE_IPS 数组
 IP_FILE="../ip.txt"
 IPS_LIST=()
@@ -73,8 +80,8 @@ for (( idx=0; idx< NODES_NUM; idx++ )); do
         peer_port=$((7001))
         echo "[DEBUG] Node ID $id will use peer_port=$peer_port"
         ssh -n -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 "$ssh_user_host" \
-    "cd ~/dumbo-mpc && \
-        docker-compose run -p ${peer_port}:${peer_port} \
+    "cd ${REMOTE_ROOT}/dumbo-mpc && \
+        MPC_IMAGE='${MPC_IMAGE:-}' docker-compose run -p ${peer_port}:${peer_port} \
         -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
         dumbo-mpc \
         bash -lc 'python3 scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS --dumbo_mode $DUMBO_MODE && \
@@ -86,4 +93,4 @@ done
 # 等待所有后台 ssh 结束
 wait
 
-echo "✅ 已向 $NODES_NUM 台服务器下发 AsyRanTriGen 进程启动命令。查看各机 ~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/log/ 下的 logs-<id>.log。"
+echo "✅ 已向 $NODES_NUM 台服务器下发 AsyRanTriGen 进程启动命令。查看各机 ${REMOTE_ROOT}/dumbo-mpc/dumbo-mpc/AsyRanTriGen/log/ 下的 logs-<id>.log。"

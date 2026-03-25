@@ -6,6 +6,13 @@ ensure_script_dir
 
 source -- ./config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [ -n "$REMOTE_WORKSPACE_DIR" ]; then
+    REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+    REMOTE_ROOT="~"
+fi
+
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <config_dir>"
     exit 1
@@ -38,8 +45,8 @@ for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && rm -rf admpc_4_cloud"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && rm -rf admpc_4.tar.xz && rm -rf admpc_4"
-    scp "$archive_name" "$ssh_user_host:~/dumbo-mpc/dumbo-mpc/AsyRanTriGen/conf"
-    ssh "$ssh_user_host" -- "cd dumbo-mpc/dumbo-mpc/AsyRanTriGen/conf && tar Jxf $archive_name"
+    scp "$archive_name" "$ssh_user_host:${REMOTE_ROOT}/dumbo-mpc/dumbo-mpc/AsyRanTriGen/conf"
+    ssh "$ssh_user_host" -- "cd ${REMOTE_ROOT}/dumbo-mpc/dumbo-mpc/AsyRanTriGen/conf && tar Jxf $archive_name"
     # scp "./dist/sdumoe-chain-ethermint.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-ethermint.docker.image.tar.xz"
     # scp "./dist/sdumoe-chain-backend.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-backend.docker.image.tar.xz"
 done

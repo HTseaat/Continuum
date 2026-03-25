@@ -6,6 +6,13 @@ ensure_script_dir
 
 source -- ./config.sh
 
+REMOTE_WORKSPACE_DIR="${REMOTE_WORKSPACE_DIR:-}"
+if [ -n "$REMOTE_WORKSPACE_DIR" ]; then
+    REMOTE_ROOT="~/${REMOTE_WORKSPACE_DIR}"
+else
+    REMOTE_ROOT="~"
+fi
+
 
 
 for i in $(seq 1 $NODE_NUM); do
@@ -16,21 +23,21 @@ done
 
 cd ../..
 
-tar Jcf adkg.tar.xz adkg
+tar Jcf admpc.tar.xz admpc
 
 # copy these files to each node
 for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
 
 
-    scp "adkg.tar.xz" "$ssh_user_host:~/adkg.tar.xz"
+    scp "admpc.tar.xz" "$ssh_user_host:${REMOTE_ROOT}/admpc.tar.xz"
 
 done
 
 
 for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
-    ssh "$ssh_user_host" -- "tar Jxf adkg.tar.xz"
+    ssh "$ssh_user_host" -- "mkdir -p ${REMOTE_ROOT} && cd ${REMOTE_ROOT} && tar Jxf admpc.tar.xz"
 
 done
 
