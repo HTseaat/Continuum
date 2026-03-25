@@ -1,18 +1,27 @@
 #!/bin/bash
-# Usage: ./launch_asyrantrigen.sh <N_nodes> <batch_size>
+# Usage: ./launch_asyrantrigen.sh <N_nodes> <batch_size> [layers] [full|drop-epoch4]
 # 将 AsyRanTriGen 跨服务器启动，依赖 config.sh 中的 NODE_SSH_USERNAME / NODE_IPS
 # 若存在 ../ip.txt 且非空，则优先使用该文件中的 IP 列表（每行一个 IP）。
 
 set -uo pipefail
 
 if [ $# -lt 2 ]; then
-  echo "Usage: $0 <N_nodes> <batch_size>" >&2
+  echo "Usage: $0 <N_nodes> <batch_size> [layers] [full|drop-epoch4]" >&2
   exit 1
 fi
 
 NODES_NUM="$1"
 BATCH_SIZE="$2"
 LAYERS="${3:-10}"
+DUMBO_MODE="${4:-full}"
+
+case "$DUMBO_MODE" in
+  full|drop-epoch4) ;;
+  *)
+    echo "[ERROR] Invalid dumbo mode: ${DUMBO_MODE}. Expected full|drop-epoch4" >&2
+    exit 1
+    ;;
+esac
 
 
 # 读取统一的节点配置，与 control-node.sh 保持一致
@@ -37,6 +46,7 @@ fi
 echo "[DEBUG] 期望节点数(NODES_NUM) = $NODES_NUM"
 echo "[DEBUG] batch_size(BATCH_SIZE) = $BATCH_SIZE"
 echo "[DEBUG] layers(LAYERS) = $LAYERS"
+echo "[DEBUG] dumbo_mode(DUMBO_MODE) = $DUMBO_MODE"
 echo "[DEBUG] 实际读取到的 IP 数量 = ${#IPS_LIST[@]}"
 echo "[DEBUG] IP 列表: ${IPS_LIST[*]}"
 
@@ -67,7 +77,7 @@ for (( idx=0; idx< NODES_NUM; idx++ )); do
         docker-compose run -p ${peer_port}:${peer_port} \
         -w /opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen \
         dumbo-mpc \
-        bash -lc 'python3 scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS && \
+        bash -lc 'python3 scripts/init_batchsize_layer_ip.py --N $NODES_NUM --k $BATCH_SIZE --layers $LAYERS --dumbo_mode $DUMBO_MODE && \
                     python3 -u -m scripts.run_beaver_triple -d -f conf/mpc_$NODES_NUM/local.${id}.json -time 0'"
     ) > "logs/node${idx}.log" 2>&1 &
     (( id++ ))

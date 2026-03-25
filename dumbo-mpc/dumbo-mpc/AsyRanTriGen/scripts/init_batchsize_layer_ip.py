@@ -11,6 +11,14 @@ if __name__ == "__main__":
 
     parser.add_argument('--layers', metavar='layers', default=10,
                         help='number of circuit layers (default: 10)', type=int)
+    parser.add_argument(
+        '--dumbo_mode',
+        metavar='dumbo_mode',
+        default='full',
+        choices=['full', 'drop-epoch4'],
+        help='dumbo_mpc_dyn mode for asy-triple: full | drop-epoch4',
+        type=str,
+    )
     
 
     args = parser.parse_args()
@@ -18,6 +26,7 @@ if __name__ == "__main__":
     N = args.N
     k = args.k
     layers = args.layers
+    dumbo_mode = args.dumbo_mode
     
     file_path = 'scripts/ip.txt'  
 
@@ -54,6 +63,7 @@ if __name__ == "__main__":
 
         data['extra']['k'] = k
         data['extra']['layers'] = layers
+        data['extra']['dumbo_mode'] = dumbo_mode
         data['peers'] = ip_addresses
 
 

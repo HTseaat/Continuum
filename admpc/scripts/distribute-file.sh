@@ -6,6 +6,14 @@ ensure_script_dir
 
 source -- ./config.sh
 
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <config_dir>"
+    exit 1
+fi
+
+conf_dir="$1"
+archive_name="${conf_dir}.tar.xz"
+
 # trick: these nodes must:
 # 1. have permission to run docker (i.e., user has been added to the docker group)
 # 2. have the same username
@@ -18,16 +26,19 @@ source -- ./config.sh
 # 压缩文件
 cd ..
 cd conf
-# rm -rf admpc_4.tar.xz
-tar Jcf hbmpc_300_4_16.tar.xz hbmpc_300_4_16
+if [ ! -d "$conf_dir" ]; then
+    echo "Config directory not found: $(pwd)/$conf_dir"
+    exit 1
+fi
+tar Jcf "$archive_name" "$conf_dir"
 
 # copy these files to each node
 for i in $(seq 1 $NODE_NUM); do
     ssh_user_host="${NODE_SSH_USERNAME}@${NODE_IPS[$i - 1]}"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && rm -rf admpc_4_cloud"
     # ssh "$ssh_user_host" -- "cd htadkg/conf && rm -rf admpc_4.tar.xz && rm -rf admpc_4"
-    scp "hbmpc_300_4_16.tar.xz" "$ssh_user_host:~/adkg/conf"
-    ssh "$ssh_user_host" -- "cd adkg/conf && tar Jxf hbmpc_300_4_16.tar.xz"
+    scp "$archive_name" "$ssh_user_host:~/adkg/conf"
+    ssh "$ssh_user_host" -- "cd adkg/conf && tar Jxf $archive_name"
     # scp "./dist/sdumoe-chain-ethermint.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-ethermint.docker.image.tar.xz"
     # scp "./dist/sdumoe-chain-backend.docker.image.tar.xz" "$ssh_user_host:~/sdumoe-docker/sdumoe-chain-backend.docker.image.tar.xz"
 done

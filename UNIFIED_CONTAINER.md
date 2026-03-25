@@ -13,6 +13,10 @@
 ./unified/build_unified_image.sh
 ```
 
+可以用这个命令：DOCKER_BUILDKIT=1 ./unified/build_unified_image.sh
+
+如果要清除缓存重新build，可以用这个：DOCKER_BUILDKIT=1 docker build --no-cache -f Dockerfile.unified -t mpc-unified:latest .
+
 这条命令会使用已验证参数构建：
 
 - `APT_MIRROR=http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports`
@@ -156,6 +160,58 @@ run-dumbo-mpc-local 4 1 300 full 10
 输出位置：
 
 - 主日志：`/opt/dumbo-mpc/dumbo-mpc/AsyRanTriGen/log/logs-<id>.log`（例如 `logs-0.log` 到 `logs-3.log`）
+
+## 3.4 分布式实验编排（新增）
+
+新增目录：`/opt/unified/distributed`
+
+- `cluster.env.example`：集群配置模板
+- `sync_cluster_config.sh`：一次同步 `admpc/continuum/remote` 的 `config.sh` 与 `ip.txt`
+- `run_suite.sh`：统一入口（按协议串行）
+- `run_admpc_dist.sh` / `run_continuum_dist.sh` / `run_dumbo_dist.sh`：协议快捷入口
+
+先配置集群信息：
+
+```bash
+cd /opt/unified/distributed
+cp cluster.env.example cluster.env
+# 编辑 cluster.env，填 NODE_SSH_USERNAME 和 CLUSTER_IPS
+```
+
+按协议运行（符合“先跑完一个协议再跑另一个”的策略）：
+
+```bash
+# AD-MPC
+./run_admpc_dist.sh exp1
+
+# continuum
+./run_continuum_dist.sh exp2
+
+# dumbo (只支持 exp3/exp4)
+./run_dumbo_dist.sh exp4 --dumbo-timeout 900
+```
+
+或者用统一入口：
+
+```bash
+./run_suite.sh <admpc|continuum|dumbo> <exp1|exp2|exp3|exp4>
+```
+
+常用参数：
+
+```bash
+--sleep-between-case <seconds>   # case 之间停顿，默认 30（设 0 可关闭）
+--sync-code                      # 每个 case 前额外分发代码
+--timeout <seconds>              # admpc/continuum control-node 超时
+--dumbo-timeout <seconds>        # dumbo 启动超时
+```
+
+说明：
+- 实验参数已内置：`(n,t)={(4,1),(8,2),(12,3),(16,5)}`，以及 `exp4` 的 dumbo `drop-epoch4`。
+- 每个 case 会先同步对应 `N` 的 `config.sh/ip.txt`，并自动执行 `setup_ssh_keys.sh <N>`（同一轮里同一个 `N` 只做一次）。
+- 每个 case 都是“单独生成配置 + 单独分发 + 单独归档”，不会覆盖前一个 case 的结果。
+- 默认每个变量 case 跑完会等待 30 秒，方便你停下来记录数据（可用 `--sleep-between-case` 调整）。
+- 当前版本先归档原始日志与元信息，指标提取留空（后续补）。
 
 ## 4. 一键顺序对比（同参数）
 

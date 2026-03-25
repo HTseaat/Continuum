@@ -35,6 +35,12 @@ case "$protocol" in
     admpc)
         run_mod="scripts.admpc_dynamic_run"
         ;;
+    admpc-linear)
+        run_mod="scripts.admpc_dynamic_linear_run"
+        ;;
+    admpc-nonlinear)
+        run_mod="scripts.admpc_dynamic_nonlinear_run"
+        ;;
     fluid1)
         run_mod="scripts.fluid_mpc_run_1"
         ;;

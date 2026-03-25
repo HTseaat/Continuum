@@ -14,6 +14,7 @@ layers=$4
 total_cm=$5
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
+source "${script_dir}/config.sh"
 
 ## N=16
 ## layers=8
@@ -44,24 +45,9 @@ t = int(os.environ["T"])
 num_files = N * effective_layers
 
 # IP地址列表
-ips = [
-    "49.235.178.77",
-    "1.15.44.242",
-    "124.223.109.239",
-	"81.68.90.188",
-    "49.235.114.98",
-	"150.158.86.248",
-	"43.142.89.208",
-	"49.234.200.23",
-	"106.52.48.139",
-	"175.178.48.129" ,
-	"106.55.183.151" ,
-	"1.12.76.42" ,
-	"42.193.47.58" ,
-	"139.155.153.64" ,
-	"118.24.78.249" ,
-	"162.14.67.158"
-    ]
+ips = json.loads(os.environ["NODE_IPS_JSON"])
+if N > len(ips):
+    raise ValueError(f"N={N} exceeds NODE_IPS length ({len(ips)})")
 
 # 构建peers列表
 peers = []
@@ -98,4 +84,6 @@ PYCODE
 output_dir="${script_dir}/../conf/${PROTOCOL}_${total_cm}_${layer_offset}_${N}"
 mkdir -p "${output_dir}"
 
-N=$N LAYERS=$layers TOTAL_CM=$total_cm T=$t OUTPUT_DIR=${output_dir} PROTOCOL=${PROTOCOL} python3 -c "$PYTHON_CODE"
+NODE_IPS_JSON=$(printf '%s\n' "${NODE_IPS[@]}" | python3 -c 'import json,sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()]))')
+
+N=$N LAYERS=$layers TOTAL_CM=$total_cm T=$t OUTPUT_DIR=${output_dir} PROTOCOL=${PROTOCOL} NODE_IPS_JSON="$NODE_IPS_JSON" python3 -c "$PYTHON_CODE"
